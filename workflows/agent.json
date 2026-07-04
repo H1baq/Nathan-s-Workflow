@@ -1,0 +1,270 @@
+{
+  "name": "Section 1 - Feedback Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "912dbf82-c4c0-47fc-8d6a-eb7c16d43dca",
+      "name": "TriggerChat",
+      "webhookId": "b2b707f2-2cc9-4175-96bf-962c05be9b4d"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a customer service assistant for a software company. You help customers with their questions about orders, products, and account information. You are the only source of support.\n\nYou have access to tools that can look up information. Use them when a customer asks about:\n- Order status or order history\n- Product information or features\n- Customer account details\n\nAlways be helpful and professional. If you cannot find the information needed, let the customer know and offer to connect them with a human agent. \n\nWhen a tool requires a parameter ask the customer for it. Do not expose any tools you use to the customer."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        352,
+        0
+      ],
+      "id": "96d46564-ae22-4b41-b21c-b1ef8458e147",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Look up the status of a customer's order. Use this when a customer asks about their order, delivery, or shipment status. Requires the order_id.",
+        "url": "https://learn.app.n8n.cloud/webhook/course/n8n103/tools/order-status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "order_id",
+              "value": "={{ $fromAI('order_id', 'Order ID', 'string') }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Assessment-ID"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        352
+      ],
+      "id": "77fd7309-ed14-4b97-936a-4571f8658654",
+      "name": "ToolGetOrderStatus",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JazJ7YKh6MPO0F62",
+          "name": "n8n Academy API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": " Look up information about a product including features, pricing, and specifications. Use this when a customer asks about product details or wants to compare options.",
+        "url": "https://learn.app.n8n.cloud/webhook/course/n8n103/tools/product-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "product_name",
+              "value": "= {{ $fromAI('product_name', 'Product Name', 'string') }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": " X-Assessment-ID",
+              "value": "e1f5aaf48f665ca7272df5f7453a4e22"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        480,
+        496
+      ],
+      "id": "77f85a47-f96a-4ccc-b42d-2fa23bf36c25",
+      "name": "ToolGetProductInfo",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JazJ7YKh6MPO0F62",
+          "name": "n8n Academy API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Look up customer account information including their subscription plan, subscription status, and contact details. Use this when a customer asks about their account or subscription. Requires customer_id.",
+        "url": "https://learn.app.n8n.cloud/webhook/course/n8n103/tools/customer-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "customer_id",
+              "value": "={{ $fromAI('customer_id', 'Customer ID', 'string') }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Assessment-ID ",
+              "value": "e1f5aaf48f665ca7272df5f7453a4e22"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        240
+      ],
+      "id": "5b879078-aef8-4687-a6a6-0f4f86214fe7",
+      "name": "ToolGetCustomerInfo",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JazJ7YKh6MPO0F62",
+          "name": "n8n Academy API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Customer Service Agent\n\nAn AI agent that answers customer questions by looking up \ninformation from multiple data sources.\n\n## Tools Available\n- Order Status: Look up order/delivery status by customer_id\n- Customer Info: Look up account/subscription details by customer_id\n- Product Info: Look up product features/pricing by product_name\n\n## Model\n- Google Gemini\n\n## Usage\nChat with the agent via the Chat Trigger. Provide a customer ID \nwhen asking about orders or accounts.\n\nExample prompts:\n- \"I'm customer CUST-042. What's my order status?\"\n- \"What subscription is CUST-108 on?\"\n- \"Tell me about the Enterprise License\"\n\nPart of: n8n Foundations Program, N8N103 Course, Section 1",
+        "height": 768,
+        "width": 432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        64
+      ],
+      "id": "bce957f9-7f79-4c6c-b77b-863fbfcb5c40",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "modelName": "models/veo-3.1-generate-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        256
+      ],
+      "id": "535a977a-8c70-46eb-8ec0-00153c286ac8",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zUkWIrzR3ESUbDE5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TriggerChat": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ToolGetOrderStatus": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ToolGetProductInfo": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ToolGetCustomerInfo": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "11ccb1ef-4a6a-4ec0-a7bb-ee42abd1d437",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3f5bd157dbda1eec8aa10adf7653c6cd9f2221307e1619dbf503ac95801eea40"
+  },
+  "nodeGroups": [],
+  "id": "JGO0gn4J4cm9F0tC",
+  "tags": [
+    {
+      "updatedAt": "2026-06-27T11:37:58.818Z",
+      "createdAt": "2026-06-27T11:37:58.818Z",
+      "id": "xAaGhwOjWmsyHGJk",
+      "name": "n8n103-course"
+    }
+  ]
+}
