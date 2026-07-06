@@ -1,0 +1,618 @@
+{
+  "name": "Enterprise AI Service Desk Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "employee-support",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -736,
+        208
+      ],
+      "id": "d7c71814-cbc8-48a1-850e-f7d3e83965ee",
+      "name": "Webhook",
+      "webhookId": "c4dd4a55-a3b2-4a33-9eb2-197d3656ee32"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4af0e45e-adee-4605-8a16-9af006eb3bf6",
+              "name": "employee",
+              "value": "={{$json.body.employee}}",
+              "type": "string"
+            },
+            {
+              "id": "aefd678c-5b01-4413-8cfb-db7051e73192",
+              "name": "email",
+              "value": "={{$json.body.email}}",
+              "type": "string"
+            },
+            {
+              "id": "a6ea80aa-9081-494a-8a98-7fa38bba071a",
+              "name": "department",
+              "value": "={{$json.body.department}}",
+              "type": "string"
+            },
+            {
+              "id": "8dd92201-16fb-4ebc-9919-6c08ed9ac68e",
+              "name": "question",
+              "value": "={{$json.body.question}}",
+              "type": "string"
+            },
+            {
+              "id": "c08dedb1-17c1-4065-b5a1-ae50484e5e05",
+              "name": "timestamp",
+              "value": "={{$now}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        208
+      ],
+      "id": "90c9c798-3638-4061-a8f2-c99239d47def",
+      "name": "prepare Request"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid request. Please provide a valid email and question.\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        64,
+        352
+      ],
+      "id": "8547efd3-59cd-4047-8218-808a493a8ba3",
+      "name": "Respond to Invalid Requests"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.question}}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an Enterprise IT Support Assistant.\n\nYour responsibilities are:\n\n- Understand the employee's request.\n- Classify the request.\n- If it is a general IT question, answer it.\n- If it describes a technical problem requiring support, recommend creating a support ticket.\n- Never invent company-specific information.\n- Keep responses concise and professional.\n\nReturn your answer using the structured output schema provided.\n\nDetermine:\n- category\n- priority\n- whether a support ticket is required\n\nUse these priorities:\n- Low\n- Medium\n- High\n\nOnly set requires_ticket to true if the issue cannot be solved immediately or requires IT intervention.\nReturn your final answer using the structured output schema.\n\nRules:\n- category: Classify the request as Password, Software, Hardware, Network, Account, Access, General Inquiry, or Other.\n- priority: Choose only Low, Medium, or High.\n- requires_ticket: Set to true only if the issue requires IT intervention or cannot be solved immediately.\n- response: Provide a clear, professional response for the employee."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "99de6993-da5e-4835-a5bc-300dc0b904af",
+      "name": "IT Support Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f4cf0518-315b-4b95-a569-e7a5409ec166",
+              "leftValue": "={{ $json.question }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ae0ba881-4124-4360-8a61-6b9d2882c027",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -288,
+        208
+      ],
+      "id": "01fb1849-4f60-4448-8f4f-de7d2322f2ed",
+      "name": "Validate Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -64,
+        176
+      ],
+      "id": "1ba8d5fd-778a-4185-8756-86c08c9cba6d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GEoGUl9vXLYsSJ4G",
+          "name": "gemini key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n{\n  \"status\": \"success\",\n  \"employee\": $json.employee,\n  \"response\": $json.output\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        848,
+        160
+      ],
+      "id": "239f9d38-92f3-40a6-802b-bdd64fb56790",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool ONLY when the employee explicitly asks for a joke or asks you to make them laugh.",
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        176
+      ],
+      "id": "4385dacc-add3-4e6a-aa7c-7e5ad19e407a",
+      "name": "get_random_joke"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19BrFZHIYSxocKDjaev4uERICQY_vwjLQ740GFuYLYzU",
+          "mode": "list",
+          "cachedResultName": "Enterprise AI Service Desk Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19BrFZHIYSxocKDjaev4uERICQY_vwjLQ740GFuYLYzU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19BrFZHIYSxocKDjaev4uERICQY_vwjLQ740GFuYLYzU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Department": "={{ $json.department }}",
+            "Email": "={{ $json.email }}",
+            "Employee": "={{ $json.employee }}",
+            "Question": "={{ $json.question }}",
+            "AI Response": "={{ $json.response }}",
+            "Timestamp": "={{$json.timestamp}}",
+            "Status": "=Completed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Employee",
+              "displayName": "Employee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Department",
+              "displayName": "Department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Question",
+              "displayName": "Question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        848,
+        -32
+      ],
+      "id": "ba86e3a8-c096-4d1c-ba24-2bac2dc69b0d",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "G1N4lTHbRuXmBAq8",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\"\n    },\n    \"priority\": {\n      \"type\": \"string\",\n      \"enum\": [\"Low\", \"Medium\", \"High\"]\n    },\n    \"requires_ticket\": {\n      \"type\": \"boolean\"\n    },\n    \"response\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"category\",\n    \"priority\",\n    \"requires_ticket\",\n    \"response\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        192,
+        176
+      ],
+      "id": "29ea8656-b17d-49d7-944e-94c08c77e22c",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a8e2064a-9c5d-4cf9-9d1b-d73f53b781a7",
+              "leftValue": "={{ $json.requires_ticket }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        64
+      ],
+      "id": "fedf9c96-8997-430b-9761-65d1892e989b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "hibaqku7@gmail.com",
+        "subject": "New IT Support Incident",
+        "message": "=<h2>New IT Support Incident</h2>  <p><strong>Employee:</strong> {{$json.employee}}</p>  <p><strong>Email:</strong> {{$json.email}}</p>  <p><strong>Department:</strong> {{$json.department}}</p>  <p><strong>Category:</strong> {{$json.category}}</p>  <p><strong>Priority:</strong> {{$json.priority}}</p>  <p><strong>Question:</strong></p>  <p>{{$json.question}}</p>  <p><strong>AI Response:</strong></p>  <p>{{$json.response}}</p>  ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        -64
+      ],
+      "id": "a9340e47-b00f-4570-b9f3-70fec0ff0d29",
+      "name": "Send a message",
+      "webhookId": "96f8f2ad-29c7-42f3-80e3-9a7225fc8dfe",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cS3dIWOZKV5sLFaC",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1296,
+        -32
+      ],
+      "id": "beaeed55-e98f-4891-8671-82b515824008",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3e1cbbf1-bb9d-4c5b-afa9-2130477a39a4",
+              "name": "employee",
+              "value": "={{ $('prepare Request').item.json.employee }}",
+              "type": "string"
+            },
+            {
+              "id": "a56e2457-97cb-478b-9380-4089512557f7",
+              "name": "email",
+              "value": "={{ $('prepare Request').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "711f5b48-2713-47f1-a7e9-8c0748f4fb78",
+              "name": "department",
+              "value": "={{ $('prepare Request').item.json.department }}",
+              "type": "string"
+            },
+            {
+              "id": "74c5d1f9-a8c5-4b49-b0c2-50f85a1250f5",
+              "name": "question",
+              "value": "={{ $('prepare Request').item.json.question }}",
+              "type": "string"
+            },
+            {
+              "id": "45944b42-8db4-4c79-b415-d9947ff0d146",
+              "name": "timestamp",
+              "value": "={{ $('prepare Request').item.json.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "55033adf-81f2-425b-8819-f49038fc8beb",
+              "name": "category",
+              "value": "={{ $json.output.category }}",
+              "type": "string"
+            },
+            {
+              "id": "9fd56767-2be0-46d1-8dc9-81fab3049db1",
+              "name": "priority",
+              "value": "={{ $json.output.priority }}",
+              "type": "string"
+            },
+            {
+              "id": "f27a479a-9020-4958-99b0-8690e1c27926",
+              "name": "requires_ticket",
+              "value": "={{ $json.output.requires_ticket }}",
+              "type": "boolean"
+            },
+            {
+              "id": "67d9c497-56f0-46e8-b426-19b5dbccd72c",
+              "name": "response",
+              "value": "={{ $json.output.response }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        64
+      ],
+      "id": "4d9acf9d-41ae-4241-8b74-452a7aed68a5",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "prepare Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare Request": {
+      "main": [
+        [
+          {
+            "node": "Validate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Request": {
+      "main": [
+        [
+          {
+            "node": "IT Support Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Invalid Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IT Support Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IT Support Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_random_joke": {
+      "ai_tool": [
+        [
+          {
+            "node": "IT Support Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "IT Support Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "26bf46d2-4bf7-4ee0-add8-f53311c06d56",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1fd98e2f437b5ca1dffd1127fd37e17d4c7ae8a32a32c30fc7efc7c77c3ab204"
+  },
+  "nodeGroups": [],
+  "id": "lhe41scCG9LFjvDo",
+  "tags": []
+}
